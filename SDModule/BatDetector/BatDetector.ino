@@ -1,11 +1,11 @@
 #include <SD.h>
 #include <SPI.h>
-#define bufSize 4096
+#define bufSize 4097
 //FILE
 File myFile;
 //----------------------SPI SPEED------------------------------------
-byte divider=3; // 48MHz / divider = SPI Speed. Max speed = 20 -> Min divider = 3 -> ~16 MHz
 byte chipSelect=4; //selects the SS pin on board
+
 //----------------------SD Info--------------------------------------
 
 //----------------------BUFFERs FOR ANALOG DATA----------------------
@@ -29,17 +29,26 @@ void setup()
   SerialPrepare();
   SDPrepare();
   BDTest(Test);
- 
 
 
 }
 
 void loop()
 {
+  int t;
+  int t2;
+  t = micros();
   dataSend();
+  t = micros()-t;
   myFile.close();
+  t2 = micros()-t;
+   SerialUSB.print("dataSend time2: ");
+    SerialUSB.println(t);
+    SerialUSB.print("myFile.close time: ");
+    SerialUSB.println(t2);
   SerialUSB.println("Finished");
   while(1); //stop here
+  delay(1000);
 }
 
 void SerialPrepare(void){
@@ -47,9 +56,12 @@ void SerialPrepare(void){
   while (!SerialUSB) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+   SerialUSB.println("SerialUSB launched");
 }
 
 void SDPrepare(void){
+  SerialUSB.print("Preparing SPI..");
+  SerialUSB.println("Ready");
   SerialUSB.print("Initializing SD card..."); //Initialization message
   if (!SD.begin(chipSelect))
   { //IF ERROR IS ENCOUNTERED
@@ -70,15 +82,26 @@ void SDPrepare(void){
 }
 
 void dataSend(void){
-  SerialUSB.println("Saving to SD...");
+   int t;
+  int t2;
+  SerialUSB.print("Saving to SD...");
   if (recByteCount % 2*bufSize == bufSize) { 
+    t = micros();
       myFile.write(buf00,bufSize-1); // save buf01 to card
+        t = micros()-t;
+        SerialUSB.print("dataSend time: ");
+    SerialUSB.println(t);
       //recByteSaved+= 4095; //Count how many bytes were saved
       } 
   if (recByteCount % 2*bufSize == 0) { 
-      myFile.write(buf01,bufSize-1); // save buf02 to card
+      t = micros();
+      myFile.write(buf01,bufSize-1); // save buf01 to card
+        t = micros()-t;
+        SerialUSB.print("dataSend time: ");
+    SerialUSB.println(t);
       //recByteSaved+= 4095; //Count how many bytes were saved
       }
+  SerialUSB.println("Saved");
 }
 
 void BDTest(byte Test){
