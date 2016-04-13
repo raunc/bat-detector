@@ -16,6 +16,7 @@ volatile dmacdescriptor wrb[12] __attribute__ ((aligned (16)));
 dmacdescriptor descriptor_section[12] __attribute__ ((aligned (16)));
 dmacdescriptor descriptor __attribute__ ((aligned (16)));
 
+// TODO: move DMA to another file?
 
 static uint32_t chnl = 0;  // DMA channel
 volatile uint32_t adc_done = 0;
@@ -29,6 +30,8 @@ void DMAC_Handler() {
     active_channel =  DMAC->INTPEND.reg & DMAC_INTPEND_ID_Msk; // get channel number
     DMAC->CHID.reg = DMAC_CHID_ID(active_channel);
     adc_done = DMAC->CHINTFLAG.reg;
+
+    // Why setting this here?
     DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_TCMPL; // clear
     DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_TERR;
     DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_SUSP;
@@ -47,23 +50,21 @@ void dma_init() {
     DMAC->CTRL.reg = DMAC_CTRL_DMAENABLE | DMAC_CTRL_LVLEN(0xf);
 }
 
-void adc_dma(void *rxdata,  size_t hwords) {
-    uint32_t temp_CHCTRLB_reg;
+void adc_dma(void *rxdata, size_t dataLength) {
 
     DMAC->CHID.reg = DMAC_CHID_ID(chnl);
     DMAC->CHCTRLA.reg &= ~DMAC_CHCTRLA_ENABLE;
     DMAC->CHCTRLA.reg = DMAC_CHCTRLA_SWRST;
     DMAC->SWTRIGCTRL.reg &= (uint32_t)(~(1 << chnl));
-    temp_CHCTRLB_reg = DMAC_CHCTRLB_LVL(0) |
-      DMAC_CHCTRLB_TRIGSRC(ADC_DMAC_ID_RESRDY) | DMAC_CHCTRLB_TRIGACT_BEAT;
-    DMAC->CHCTRLB.reg = temp_CHCTRLB_reg;
+    DMAC->CHCTRLB.reg = DMAC_CHCTRLB_LVL(0) | DMAC_CHCTRLB_TRIGSRC(ADC_DMAC_ID_RESRDY) | DMAC_CHCTRLB_TRIGACT_BEAT;
     DMAC->CHINTENSET.reg = DMAC_CHINTENSET_MASK ; // enable all 3 interrupts
+
     adc_done = 0;
     descriptor.descaddr = 0;
     descriptor.srcaddr = (uint32_t) &ADC->RESULT.reg;
-    descriptor.btcnt =  hwords;
-    descriptor.dstaddr = (uint32_t)rxdata + hwords*2;   // end address
-    descriptor.btctrl =  DMAC_BTCTRL_BEATSIZE_HWORD | DMAC_BTCTRL_DSTINC | DMAC_BTCTRL_VALID;
+    descriptor.btcnt =  dataLength;
+    descriptor.dstaddr = (uint32_t)rxdata + dataLength;   // end address // Why end address?
+    descriptor.btctrl =  DMAC_BTCTRL_BEATSIZE_BYTE | DMAC_BTCTRL_DSTINC | DMAC_BTCTRL_VALID;
     memcpy(&descriptor_section[chnl],&descriptor, sizeof(dmacdescriptor));
 
     // start channel
@@ -95,9 +96,9 @@ void adc_init(const uint8_t ADC_PIN) {
   ADC->INPUTCTRL.bit.INPUTOFFSET = 0;
   ADCsync();
   ADC->AVGCTRL.reg = 0x00;       //no averaging
-  ADC->SAMPCTRL.reg = 1; //sample length in 1/2 CLK_ADC cycles // Setting to zero does not work for 10bit resolution
+  ADC->SAMPCTRL.reg = 2; //sample length in 1/2 CLK_ADC cycles // Setting to zero does not work for 10bit resolution
   ADCsync();
-  ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16 | ADC_CTRLB_FREERUN | ADC_CTRLB_RESSEL_10BIT;
+  ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16 | ADC_CTRLB_FREERUN | ADC_CTRLB_RESSEL_8BIT;
 
   // Result correction
   //ADC->CTRLB.bit.ADC_CTRLB_CORREN = 1;

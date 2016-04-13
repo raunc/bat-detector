@@ -5,15 +5,15 @@
 
 
 // ADC TODO list
-// TODO: ADC should have two 4kB buffers with uint8 elements
+// TODO: ADC should have two buffers
 // TODO: ADC should have a callback function when finished. (currently polling adc_done variable)
-// TODO: DMAC should be configurable to use 8-bit values
 // TODO: investigate why ADC readings are not from 0 TO MAX
+
 // ADC buffer length
-#define HWORDS 1024
+#define ADCBufferLength 4096
 
 /* GLOBAL VARIABLE DEFINITIONS */
-uint16_t ADCBuffer[HWORDS];
+uint8_t ADCBuffer[ADCBufferLength];
 
 
 void setup() {
@@ -37,7 +37,7 @@ void loop() {
   uint32_t t;
   t = micros();
 
-  adc_dma(ADCBuffer, HWORDS);
+  adc_dma(ADCBuffer, ADCBufferLength);
   while(!adc_done);  // await DMA done isr
 
   t = micros() - t;
