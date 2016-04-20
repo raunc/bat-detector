@@ -54,7 +54,7 @@ uint8_t SdFile::addDirCluster(void) {
     if (!SdVolume::cacheZeroBlock(block + i - 1)) return false;
   }
   // Increase directory file size by cluster size
-  fileSize_ += 4096UL << vol_->clusterSizeShift_;
+  fileSize_ += 512UL << vol_->clusterSizeShift_;
   return true;
 }
 //------------------------------------------------------------------------------
@@ -751,10 +751,10 @@ int16_t SdFile::read(void* buf, uint16_t nbyte) {
     uint16_t n = toRead;
 
     // amount to be read from current block
-    if (n > (4096 - offset)) n = 4096 - offset;
+    if (n > (512 - offset)) n = 512 - offset;
 
-    // no buffering needed if n == 4096 or user requests no buffering
-    if ((unbufferedRead() || n == 4096) &&
+    // no buffering needed if n == 512 or user requests no buffering
+    if ((unbufferedRead() || n == 512) &&
       block != SdVolume::cacheBlockNumber_) {
       if (!vol_->readData(block, offset, n, dst)) return -1;
       dst += n;
@@ -1221,21 +1221,21 @@ size_t SdFile::write(const void* buf, uint16_t nbyte) {
       }
     }
     // max space in block
-    uint16_t n = 4096 - blockOffset;
+    uint16_t n = 512 - blockOffset;
 
     // lesser of space and amount to write
     if (n > nToWrite) n = nToWrite;
 
     // block for data write
     uint32_t block = vol_->clusterStartBlock(curCluster_) + blockOfCluster;
-    if (n == 4096) {
+    if (n == 512) {
       // full block - don't need to use cache
       // invalidate cache if block is in cache
       if (SdVolume::cacheBlockNumber_ == block) {
         SdVolume::cacheBlockNumber_ = 0XFFFFFFFF;
       }
       if (!vol_->writeBlock(block, src)) goto writeErrorReturn;
-      src += 4096;
+      src += 512;
     } else {
       if (blockOffset == 0 && curPosition_ >= fileSize_) {
         // start of new block don't need to read into cache
