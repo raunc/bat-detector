@@ -1,5 +1,7 @@
 #include <SD.h>
 #include <SPI.h>
+#include "sd.h"
+
 #define bufSize 4096
 //FILE
 File myFile;
@@ -7,11 +9,7 @@ File myFile;
 byte chipSelect=4; //selects the SS pin on board
 
 //----------------------SD Info--------------------------------------
-#define NUMBER_OF_TRIES 3
-//----------------------FILE INFO------------------------------------
-const char *name = "F";
-uint32_t filenum = 0;
-const char *format = ".txt";
+
 //----------------------BUFFERs FOR ANALOG DATA----------------------
 byte buf00[bufSize]; // buffer array 1
 byte buf01[bufSize]; // buffer array 2
@@ -24,18 +22,14 @@ byte Test = 0b00000001;
 //void dataSend(void); //to send the data (REMOVED)
 void BDTest(byte);
 void testLoadBuffer(void);
-void SDPrepare(void);
-void SDFlush(uint32_t);
-bool SDNewOpen(void);
 void SerialPrepare(void);
-void SDReCheck(uint32_t, uint32_t);
 
 void setup()
 {
   //----------------------USE LED AS AN ERROR INFORMER----------------------
   pinMode(13, OUTPUT);
   SerialPrepare();
-  SDPrepare();
+  SDPrepare(myFile, chipSelect);
   BDTest(Test);
 
 
@@ -53,16 +47,16 @@ void loop()
 		  myFile.write(buf00, bufSize); // save buf01 to card
 		  t = micros()-t;
 	  }
-	  SDFlush(t);
+	  SDFlush(myFile, t);
 	  t2 = micros();
 	  if (recByteCount % 2 * bufSize == 0) {
 		  t1 = micros();
 		  myFile.write(buf01, bufSize); // save buf01 to card
 		  t1 = micros()-t1;
 	  }
-	  SDFlush(t1);
+	  SDFlush(myFile, t1);
 	  t2 = micros() - t2;
-	  SDReCheck(t, t1);
+	  SDReCheck(myFile, chipSelect, t, t1);
 	  //SerialUSB.print(i); //For tests
 	  //SerialUSB.print(". ");
 	  SerialUSB.println(t2);
@@ -78,76 +72,6 @@ void SerialPrepare(void){
     ; // wait for serial port to connect. Needed for native USB port only
   }
    SerialUSB.println("SerialUSB launched");
-}
-
-void SDPrepare(void){
-	//bool Ready;
-	uint8_t i;
-  SerialUSB.println("12MHz SPI Ready");
-  SerialUSB.print("Initializing SD card..."); //Initialization message
-  for(i =0; (i<NUMBER_OF_TRIES)&&(!SD.begin(chipSelect));i++)
-  //while (!SD.begin(chipSelect))
-  { //IF ERROR IS ENCOUNTERED
-    SerialUSB.println("Card failed, or not present"); //UNSUCCESSFUL MESSAGE
-	delay(100);
-  }
-  if (i == NUMBER_OF_TRIES) {
-	  while (1) {
-		  digitalWrite(13, HIGH);
-		  delay(500);
-		  digitalWrite(13, LOW);
-		  delay(500);
-	  }
-  }
-  SerialUSB.println("Card initialized.");//SUCCESSFUL MESSAGE
-  //----------------------CREATE AND OPEN A FILE ON SD CARD----------------------
-  SerialUSB.println("Opening file.");
-  //Ready = SDNewOpen();
-  if (!SDNewOpen()) {
-	  SerialUSB.println("Error opening new file");
-	  return;
-  }
-  SerialUSB.println("File opened.");
-}
-
-/*Each time when the sending time is larger than ~350ms the file is reopened. 
-It is needed to confirm saved data which was sent before. Otherwise, if the controller stops working for some reason
-the stored data will be lost.*/
-void SDFlush(uint32_t t)
-{
-	if (t > 150000) {
-		SerialUSB.println("SDFlush");
-		myFile.flush();
-			}
-}
-
-/*Planning to use this function to create another file when the data was recorded for ~1 hour*/
-bool SDNewOpen(void) {
-	//SerialUSB.println("SDNewOpen");
-	char buffer[30];
-	filenum++;
-	if (filenum != 1) {
-		myFile.close();
-	}
-	sprintf(buffer, "%s%d%s", name, filenum, format);
-	SerialUSB.println(buffer);
-	while (SD.exists(buffer)) {
-		filenum++;
-		sprintf(buffer, "%s%d%s", name, filenum, format);
-		SerialUSB.println(buffer);
-	}
-	if ((myFile = SD.open(buffer, FILE_WRITE)) == 0) {
-			return 0;
-	}
-	return 1;
-}
-
-void SDReCheck(uint32_t t, uint32_t t1) {
-	//SerialUSB.println("SDReCheck");
-	if ((t < 1000) || (t1 < 1000)) {
-		SerialUSB.println("SDReCheck: prepare");
-		SDPrepare();
-	}
 }
 
 void BDTest(byte Test){
