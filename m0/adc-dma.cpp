@@ -96,7 +96,7 @@ void adc_init(const uint8_t ADC_PIN) {
   ADC->INPUTCTRL.bit.INPUTOFFSET = 0;
   ADCsync();
   ADC->AVGCTRL.reg = 0x00;       //no averaging
-  ADC->SAMPCTRL.reg = 2; //sample length in 1/2 CLK_ADC cycles // Setting to zero does not work for 10bit resolution
+  ADC->SAMPCTRL.reg = 4; //sample length in 1/2 CLK_ADC cycles // Setting to zero does not work for 10bit resolution
   ADCsync();
   ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16 | ADC_CTRLB_FREERUN | ADC_CTRLB_RESSEL_8BIT;
 
