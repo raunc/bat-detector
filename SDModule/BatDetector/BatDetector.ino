@@ -25,9 +25,10 @@ byte Test = 0b00000001;
 void BDTest(byte);
 void testLoadBuffer(void);
 void SDPrepare(void);
-bool SDFlush(uint32_t);
+void SDFlush(uint32_t);
 bool SDNewOpen(void);
 void SerialPrepare(void);
+void SDReCheck(uint32_t, uint32_t);
 
 void setup()
 {
@@ -42,8 +43,8 @@ void setup()
 
 void loop()
 {
-  uint32_t t;
-  uint32_t t1;
+  uint32_t t=1000;
+  uint32_t t1=1000;
   uint32_t t2;
   //uint32_t i;//732422 for 3Gigs
   //for (i = 0; i < 200000; i++) {
@@ -52,21 +53,16 @@ void loop()
 		  myFile.write(buf00, bufSize); // save buf01 to card
 		  t = micros()-t;
 	  }
-	  if (!SDFlush(t)) {
-		  SerialUSB.println("Error reopening file");
-		  return;
-	  }
+	  SDFlush(t);
 	  t2 = micros();
 	  if (recByteCount % 2 * bufSize == 0) {
 		  t1 = micros();
 		  myFile.write(buf01, bufSize); // save buf01 to card
 		  t1 = micros()-t1;
 	  }
-	  if (!SDFlush(t1)) {
-		  SerialUSB.println("Error reopening file");
-		  return;
-	  }
+	  SDFlush(t1);
 	  t2 = micros() - t2;
+	  SDReCheck(t, t1);
 	  //SerialUSB.print(i); //For tests
 	  //SerialUSB.print(". ");
 	  SerialUSB.println(t2);
@@ -85,7 +81,7 @@ void SerialPrepare(void){
 }
 
 void SDPrepare(void){
-	bool Ready;
+	//bool Ready;
 	uint8_t i;
   SerialUSB.println("12MHz SPI Ready");
   SerialUSB.print("Initializing SD card..."); //Initialization message
@@ -117,18 +113,17 @@ void SDPrepare(void){
 /*Each time when the sending time is larger than ~350ms the file is reopened. 
 It is needed to confirm saved data which was sent before. Otherwise, if the controller stops working for some reason
 the stored data will be lost.*/
-bool SDFlush(uint32_t t)
+void SDFlush(uint32_t t)
 {
-	if (t > 350000) {
+	if (t > 150000) {
 		SerialUSB.println("SDFlush");
 		myFile.flush();
 			}
-	return 1;
 }
 
 /*Planning to use this function to create another file when the data was recorded for ~1 hour*/
 bool SDNewOpen(void) {
-	SerialUSB.println("SDNewOpen");
+	//SerialUSB.println("SDNewOpen");
 	char buffer[30];
 	filenum++;
 	if (filenum != 1) {
@@ -145,6 +140,14 @@ bool SDNewOpen(void) {
 			return 0;
 	}
 	return 1;
+}
+
+void SDReCheck(uint32_t t, uint32_t t1) {
+	//SerialUSB.println("SDReCheck");
+	if ((t < 1000) || (t1 < 1000)) {
+		SerialUSB.println("SDReCheck: prepare");
+		SDPrepare();
+	}
 }
 
 void BDTest(byte Test){
