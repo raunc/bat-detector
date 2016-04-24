@@ -16,10 +16,16 @@ volatile dmacdescriptor wrb[12] __attribute__ ((aligned (16)));
 dmacdescriptor descriptor_section[12] __attribute__ ((aligned (16)));
 dmacdescriptor descriptor __attribute__ ((aligned (16)));
 
-// TODO: move DMA to another file?
 
 static uint32_t chnl = 0;  // DMA channel
 volatile uint32_t adc_done = 0;
+
+fnPtr doneHandler = 0;
+
+void setADCDoneHandler(fnPtr handler) {
+  doneHandler = handler;
+}
+
 
 void DMAC_Handler() {
     // interrupts DMAC_CHINTENCLR_TERR DMAC_CHINTENCLR_TCMPL DMAC_CHINTENCLR_SUSP
@@ -27,7 +33,7 @@ void DMAC_Handler() {
 
     // disable irqs ?
     __disable_irq();
-    active_channel =  DMAC->INTPEND.reg & DMAC_INTPEND_ID_Msk; // get channel number
+    active_channel = DMAC->INTPEND.reg & DMAC_INTPEND_ID_Msk; // get channel number
     DMAC->CHID.reg = DMAC_CHID_ID(active_channel);
     adc_done = DMAC->CHINTFLAG.reg;
 
@@ -36,6 +42,10 @@ void DMAC_Handler() {
     DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_TERR;
     DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_SUSP;
     __enable_irq();
+
+    if (doneHandler) {
+      (*doneHandler)();
+    }
 }
 
 
@@ -78,7 +88,7 @@ static void   ADCsync() {
 }
 
 
-void adc_init(const uint8_t ADC_PIN) {
+void adc_init(const uint8_t ADC_PIN, const uint8_t samplingSpeed) {
   analogRead(ADC_PIN);  // do some pin init  pinPeripheral()
 
   // ADC is macro defined in hardware/tools/CMSIS/Device/ATMEL/samd21/include/samd21g18a.h
@@ -96,7 +106,7 @@ void adc_init(const uint8_t ADC_PIN) {
   ADC->INPUTCTRL.bit.INPUTOFFSET = 0;
   ADCsync();
   ADC->AVGCTRL.reg = 0x00;       //no averaging
-  ADC->SAMPCTRL.reg = 4; //sample length in 1/2 CLK_ADC cycles // Setting to zero does not work for 10bit resolution
+  ADC->SAMPCTRL.reg = samplingSpeed; //sample length in 1/2 CLK_ADC cycles // Setting to zero does not work for 10bit resolution
   ADCsync();
   ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV16 | ADC_CTRLB_FREERUN | ADC_CTRLB_RESSEL_8BIT;
 
