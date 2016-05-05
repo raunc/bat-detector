@@ -58,7 +58,7 @@ void loop() {
 }
 
 void handleBufferFull(void) {
-  SerialUSB.println("handleBufferFull");
+//  SerialUSB.println("handleBufferFull");
   uint8_t* buffer;
   uint8_t* bufferStatus;
   uint8_t* otherBuffer;
@@ -82,17 +82,17 @@ void handleBufferFull(void) {
     return;
   }
 
-  SerialUSB.print("Buffer statuses ");
-  SerialUSB.print(adcBuffer0Status);
-  SerialUSB.println(adcBuffer1Status);
+//  SerialUSB.print("Buffer statuses ");
+//  SerialUSB.print(adcBuffer0Status);
+//  SerialUSB.println(adcBuffer1Status);
   (*bufferStatus) = BUFFER_FULL;
 
   // For debugging:
-  for (uint32_t i = 0; i < 10; ++i) {
+/*  for (uint32_t i = 0; i < 10; ++i) {
     SerialUSB.print(buffer[i]);
     SerialUSB.print(" ");
   }
-  SerialUSB.println();
+  SerialUSB.println();*/
 
 
   if ((*otherBufferStatus) == BUFFER_EMPTY) {
@@ -105,7 +105,7 @@ void handleBufferFull(void) {
 }
 
 void handleBufferWrittenToSDCard(uint8_t* buffer) {
-  SerialUSB.println("handleBufferWrittenToSDCard");
+//  SerialUSB.println("handleBufferWrittenToSDCard");
   uint8_t* otherBuffer;
   uint8_t* otherBufferStatus;
   uint8_t* bufferStatus;
@@ -132,21 +132,21 @@ void handleBufferWrittenToSDCard(uint8_t* buffer) {
 }
 
 void writeBufferToSD(uint8_t* buffer, size_t size) {
-  SerialUSB.println("writeBufferToSD");
+//  SerialUSB.println("writeBufferToSD");
   uint32_t t2 = micros();
 
   uint32_t t1 = micros();
   uint16_t bytesWritten = sdFile.write(buffer, size);// Save buffer to card
   t1 = micros() - t1;
-  SerialUSB.println("bytesWritten, t1: ");
-  SerialUSB.println(bytesWritten);
-  SerialUSB.println(t1);// Print for debugging
+//  SerialUSB.println("bytesWritten, t1: ");
+//  SerialUSB.println(bytesWritten);
+//  SerialUSB.println(t1);// Print for debugging
   SDFlush(sdFile, t1);
 
   t2 = micros() - t2;
 //  SDReCheck(sdFile, CHIP_SELECT_SD, t1, t1);
 
-  SerialUSB.println(t2);// Print for debugging
+//  SerialUSB.println(t2);// Print for debugging
 
   // Buffer is now written to SD card. Check other buffer status
   handleBufferWrittenToSDCard(buffer);

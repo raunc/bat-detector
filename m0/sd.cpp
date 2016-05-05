@@ -46,7 +46,7 @@ the stored data will be lost.*/
 bool SDFlush(File &myFile, uint32_t t)
 {
 	if (t > 150000) {
-		SerialUSB.println("SDFlush");
+//		SerialUSB.println("SDFlush");
 		myFile.flush();
 			}
 }
